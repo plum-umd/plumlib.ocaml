@@ -1,0 +1,9 @@
+lib: [
+  "META"
+  "_build/src/PLUM.a"
+  "_build/src/PLUM.cmo"
+  "_build/src/PLUM.cmi"
+  "_build/src/PLUM.cma"
+  "_build/src/PLUM.cmx"
+  "_build/src/PLUM.cmxa"
+  ]

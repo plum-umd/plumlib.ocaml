@@ -1,0 +1,5 @@
+requires = "num str unix ppx_deriving ppx_implicits"
+description = "Utilities for for OCaml"
+version = "0.1"
+archive(byte) = "PLUM.cma"
+archive(native) = "PLUM.cmxa"

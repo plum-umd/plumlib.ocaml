@@ -1,0 +1,5 @@
+<src>      : include
+<src/*.ml> : for-pack(PLUM)
+<test>     : include
+true       : package(unix, num, str)
+true       : package(ppx_deriving.std, ppx_implicits)

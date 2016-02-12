@@ -1,0 +1,16 @@
+opam-version: "1.2.2"
+name: "plumlib"
+version: "0.1"
+maintainer: "Nicholas Labich <labichn@cs.umd.edu>"
+author: "Nicholas Labich <labichn@cs.umd.edu>"
+build: [
+  [make]
+]
+homepage: "https://github.com/plum-umd/plumlib"
+dev-repo: "https://github.com/plum-umd/plumlib.git"
+bug-reports: "https://github.com/plum-umd/plumlib/issues"
+depends: [
+  "ocamlfind" {build}
+  "ppx_deriving"
+  "ppx_implicits"
+  ]
