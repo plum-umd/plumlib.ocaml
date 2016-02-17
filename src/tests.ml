@@ -1,9 +1,11 @@
+include TSuite
+(* include TMonad *)
+include TTypes
+
 let run_tests () =
 
   List.iter Suite.test
-    ([    TSuite.suite
-            
-     ] @ TImplicit.([
+    (TTypes.([
             bool_suite
      ;      char_suite
      ;       exn_suite
@@ -15,6 +17,7 @@ let run_tests () =
      ;    string_suite
      ;      unit_suite
      ;     array_suite
+     ;       fun_suite
      ;      lazy_suite
      ;      list_suite
      ;    option_suite
@@ -23,7 +26,10 @@ let run_tests () =
      ;    tuple3_suite
      ;    tuple4_suite
      ;    tuple9_suite
-     ]))
+     ]) @
+     [    TSuite.suite
+(*     ;    TMonad.suite *)
+     ])
 
   ;
   

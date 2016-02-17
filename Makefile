@@ -13,17 +13,21 @@ default: clean
     $(BYTE) PLUM.$$ext || exit 1 ; \
   done
 
-test: tests.native
-	./tests.native
+test-package: clean reinstall
 	cd sample && \
-    ocamlbuild -use-ocamlfind use.native && \
+    ocamlbuild -use-ocamlfind use.native || \
 	  ./use.native
 
-install:
+test: tests.native
+	./tests.native
+
+install: default
 	opam pin add -y plumlib .
 
 uninstall:
 	opam pin remove -y plumlib
+
+reinstall: uninstall install
 
 %.native : **/%.ml
 	$(NATIVE) $@

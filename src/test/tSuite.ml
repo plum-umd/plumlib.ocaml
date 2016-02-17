@@ -1,7 +1,7 @@
 open Prof
 open Mem
 open Suite
-open Implicit
+open Types
 
 let mem_suite =
   let b1  =  1
@@ -32,6 +32,37 @@ let mem_suite =
       ;   kib 0, "0 KiB"   ;  KiB b1, "1 KiB"  ;  KiB b42, "42 KiB"
       ;   mib 0, "0 MiB"   ;  MiB b1, "1 MiB"  ;  MiB b42, "42 MiB"
       ;   gib 0, "0 GiB"   ;  GiB b1, "1 GiB"  ;  GiB b42, "42 GiB"
+      ]
+  and of_string_tests =
+    List.map (check_equal "Mem.of_string" Mem.of_string)
+      [  "0 bits",  Some (bits 0)  ;  "1 bit",   Some (Bit b1)
+      ; "42 bits",  Some (Bit b42) ;  "0 words", Some (words 0)
+      ;  "1 word",  Some (Word b1) ; "42 words", Some (Word b42)
+      ;  "0 bytes", Some (bytes 0) ;  "1 byte",  Some (Byte b1)
+      ; "42 bytes", Some (Byte b42);  "0 KiB",   Some (kib 0)
+      ;  "1 KiB",   Some (KiB b1)  ; "42 KiB",   Some (KiB b42)
+      ;  "0 MiB",   Some (mib 0)   ;  "1 MiB",   Some (MiB b1)
+      ; "42 MiB",   Some (MiB b42) ;  "0 GiB",   Some (gib 0)
+      ;  "1 GiB",   Some (GiB b1)  ; "42 GiB",   Some (GiB b42)
+      ;  "0bits",   Some (bits 0)  ;  "1bit",    Some (Bit b1)
+      ; "42bits",   Some (Bit b42) ;  "0words",  Some (words 0)
+      ;  "1word",   Some (Word b1) ; "42words",  Some (Word b42)
+      ;  "0bytes",  Some (bytes 0) ;  "1byte",   Some (Byte b1)
+      ; "42bytes",  Some (Byte b42);  "0KiB",    Some (kib 0)
+      ;  "1KiB",    Some (KiB b1)  ; "42KiB",    Some (KiB b42)
+      ;  " 1   ",   Some (KiB b1)  ; "   42",   Some (KiB b42)
+      ;  "0MiB",    Some (mib 0)   ;  "1MiB",    Some (MiB b1)
+      ; "42MiB",    Some (MiB b42) ;  "0GiB",    Some (gib 0)
+      ;  "1GiB",    Some (GiB b1)  ; "42GiB",    Some (GiB b42)
+      ;  "0b",      Some (bits 0)  ;  "1b",      Some (Bit b1)
+      ; "42b",      Some (Bit b42) ;  "0w",      Some (words 0)
+      ;  "1w",      Some (Word b1) ; "42w",      Some (Word b42)
+      ;  "0B",      Some (bytes 0) ;  "1B",      Some (Byte b1)
+      ; "42B",      Some (Byte b42);  "0K",      Some (kib 0)
+      ;  "1K",      Some (KiB b1)  ; "42K",      Some (KiB b42)
+      ;  "0M",      Some (mib 0)   ;  "1M",      Some (MiB b1)
+      ; "42M",      Some (MiB b42) ;  "0G",      Some (gib 0)
+      ;  "1G",      Some (GiB b1)  ; "42G",      Some (GiB b42)
       ]
   and conv_tests =
     List.map (check_equal "Suite.Mem.proj_bits" Mem.proj_bits)
@@ -108,6 +139,6 @@ let mem_suite =
   in
   "mem",
   show_tests@show'_tests@conv_tests@
-  plus_tests@minus_tests
+  plus_tests@minus_tests@of_string_tests
 
 let suite = mem_suite

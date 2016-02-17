@@ -58,6 +58,7 @@ module Mem : sig
   val lift  : (int -> int) -> (t -> t)
   val free  : ?print:bool -> unit -> t
   val proj  : t -> int
+  val of_string : string -> t option
 
   val  (<!)   : t -> t -> bool
   val  (>!)   : t -> t -> bool
@@ -223,6 +224,41 @@ struct
     else if m >=! m'
     then lift ((-) (proj m)) m'
     else failwith "-! refusing to create negative memory"
+
+  let of_string : string -> t option =
+    (* the kb, mb, gbs are technically wrong *)
+    let suffs = [ ["b";"bi";"bit";"bits"],   bits
+                ; ["B";"byte";"bytes"],      bytes
+                ; ["w";"W";"word";"words"],  words
+                ; ["k";"K";"kb";"KB";"kib";"KiB"], kib
+                ; ["m";"M";"mb";"MB";"mib";"MiB"], mib
+                ; ["g";"G";"gb";"GB";"gib";"GiB"], gib
+                ]
+    in
+    fun s ->
+      match int_of_string (String.trim s) with
+      | i -> Some (kib i) (* assume kilobytes if no unit given *)
+      | exception (Failure "int_of_string")->
+        let slen = String.length s in
+        List.fold_right
+          (fun (suffs, inj) -> function
+             | Some _ as acc -> acc
+             | acc ->
+               let index =
+                 List.fold_right
+                   (fun suff ind ->
+                      if ind > 0 then ind
+                      else try Str.search_backward (Str.regexp suff) s (slen-1)
+                        with Not_found -> ind)
+                   suffs ~-1 in
+               if index > 0
+               then let before = Str.string_before s index in
+                 let trim   = String.trim before in
+                 let ios    = int_of_string trim in
+                 Some (inj ios)
+               else acc)
+          suffs
+          None
 
   let free ?(print=false) () =
     let default = mib 512 in
@@ -416,8 +452,7 @@ end = struct
                         "%" ^ (string_of_int maxu)  ^ "s")
                        "%1s %1s %1s")
                     nm v u)
-               |> String.concat "
-"
+               |> String.concat "\n"
        
   
 end
@@ -466,21 +501,23 @@ end
 
 
 (* .01 < frac_free < 1  *)
-let gc_halt (type a) : ?rel:float -> ?free:float -> ?quantity:Mem.t ->
-  (unit -> a) -> a = fun ?rel ?free ?quantity f ->
+let gc_halt (type a) : ?rel:float -> ?free:float -> ?minor:Mem.t ->
+  (unit -> a) -> a = fun ?rel ?free ?minor f ->
   let default_conf = Gc.get () in
   let default = Mem.words default_conf.minor_heap_size in
   let minor_heap_size =
     (match free with
-      | Some frac when frac > 0.01 ->
-        Mem.free () |> Mem.lift (fun m -> float m *. frac |> truncate)
-      | Some rel when rel > 0. ->
-        Mem.lift (fun m -> float m *. rel |> truncate) default
-      | _ -> optdef default quantity)
+     | Some frac when frac > 0.01 ->
+       Mem.free () |> Mem.lift (fun m -> float m *. frac |> truncate)
+     | _ ->
+       (match rel with         
+        | Some rel when rel > 0. ->
+          Mem.lift (fun m -> float m *. rel |> truncate) default
+        | _ ->  optdef default minor))
     |> Mem.proj_words
   in
   gc_mod ~minor_heap_size
-         ~major_heap_increment:100
+         ~major_heap_increment:10
          ~space_overhead:max_int
          ~max_overhead:max_int
          ~allocation_policy:1
@@ -499,7 +536,7 @@ let mk_memweigh () =
     let out  = f () in
     let curr = Gc.quick_stat () in
     let diff = Stat.diff (Stat.diff curr last) !overhead in
-    (if print then print_endline (Stat.show_diff diff)) ;
+    (if print then Printf.printf "%s%!" (Stat.show_diff diff)) ;
     (out, diff)
   in
   (* Set the space overhead. Should only be a word on the stack if the
@@ -525,9 +562,10 @@ let mk_memabort () =
 
 let nativep =
   let cache = ref None in
-  let abort = ref (Some (mk_memabort ())) in
+  let abort = ref None in
   fun () -> match !cache, !abort with
-    | None, Some abortf ->
+    | None, None ->
+      let abortf = mk_memabort () in abort := Some abortf ;
       let litopt =
         0 = (gc_halt (abortf (fun () ->
              let intlit = 1 in Gc.quick_stat ()))).stack_size

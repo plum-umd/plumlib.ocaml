@@ -43,7 +43,7 @@ let rec foldn f a = function
 
 let range n max =
   let rec loop a m =
-    if m < max+n then loop (m::a) (m+1) else List.rev a in
+    if m < max then loop (m::a) (m+1) else List.rev a in
   loop [] n
 
 let multiply x =

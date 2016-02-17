@@ -1,9 +1,12 @@
-type result = [`Succ | `Fail of string | `Error of string]
+type result = [ `Succ
+              | `Fail  of string
+              | `Error of string
+              ]
 type test   = string * (unit -> result)
 type suite  = string * test list
 
 open Prof
-open Implicit
+open Types
 
 let check_equal (type i) (type o)
     ?_ishow:   (_ishow :  i Show.t  option)
@@ -11,22 +14,22 @@ let check_equal (type i) (type o)
     ?_oshow:   (_oshow :  o Show.t  option)
   : string -> (i -> o) -> (i * o) -> test =
   fun name f (i, expect) ->
-    let name = Printf.sprintf "%s %s" name (show ?_imp:_ishow i) in
+    let name = Printf.sprintf "%s %s" name (show ?_show:_ishow i) in
     let thunk () =
       try
         let o = f i in
-        if equal ?_imp:_oequal o expect
+        if equal ?_eq:_oequal o expect
         then `Succ
         else (`Fail (Printf.sprintf
-                       "%s: Expected `%s`, but got `%s`."
+                       "'%s': Expected `%s`, but got `%s`."
                        name
-                       (show ?_imp:_oshow expect)
-                       (show ?_imp:_oshow o)))
+                       (show ?_show:_oshow expect)
+                       (show ?_show:_oshow o)))
       with exc ->
         `Error (Printf.sprintf "%s: Exception: %s\n(expected `%s`)"
                   name
                   (Printexc.to_string exc)
-                  (show ?_imp:_oshow expect))
+                  (show ?_show:_oshow expect))
     in
     name, thunk
 
@@ -38,18 +41,18 @@ let check_equal2 (type i1) (type i2) (type o)
   fun name f (i1, i2, o) ->
     check_equal1
       ?_ishow:_i2show ?_oequal ?_oshow
-      (Printf.sprintf "%s %s" name (show ?_imp:_i1show i1))
+      (Printf.sprintf "%s %s" name (show ?_show:_i1show i1))
       (f i1) (i2, o)
-(*
+
 let check_equal3 (type i1) (type i2) (type i3) (type o)
-  ?_i1 ?_i2 ?_i3 ?_o
-  : string ->
-     (i1 -> i2 -> i3 -> o) ->
-     (i1 *  i2 *  i3 *  o) -> test =
+    ?_i1show:(_i1show : i1 Show.t option) ?_i2show ?_i3show
+    ?_oequal ?_oshow
+  : string -> (i1 -> i2 -> i3 -> o) -> (i1 * i2 * i3 * o) -> test =
   fun name f (i1, i2, i3, o) ->
-    check_equal2 ?_i1:_i2 ?_i2:_i3 ?_o
-      (Printf.sprintf "%s %s" name (show ?_imp:_i1 i1))
-      (f i1) (i2, i3, o)*)
+    check_equal2
+      ?_i1show:_i2show ?_i2show:_i3show ?_oequal ?_oshow
+      (Printf.sprintf "%s %s" name (show ?_show:_i1show i1))
+      (f i1) (i2, i3, o)
 
 let test : suite -> unit =
   fun (name, tests) ->

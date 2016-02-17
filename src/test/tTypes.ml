@@ -234,10 +234,10 @@ let array_suite =
     ; [|[[["foo"]]];[[]];[]|], [|[[["foo"]]]; [] ;[]|], 1
     ]  @
   List.map (check_equal2 "Basic.shash" shash)
-    [ 42, [||], h 42 "Types.Array.shash"
+    [ 42, [||], h 42 "Types.ArrayP.shash"
     ; 0, [|1;2;3;4|],
       Array.fold_left h
-        (h 0 "Types.Array.shash")
+        (h 0 "Types.ArrayP.shash")
         [|1;2;3;4|]
     ] @
   List.map (check_equal "Basic.show" show)
@@ -260,9 +260,48 @@ let array_suite =
     ; [|[[["foo"]]];[];[]|], [|[[["foo"]]];[];[]|]
     ]
 
+let fun_suite =
+  let id (type a) : a -> a = fun x->x in
+  let i_to_i1 = fun (i : int) -> i in
+  let i_to_i2 = (( * ) 2) in
+  let yuck = Printf.sprintf "%s %a %d %f %a %!" in
+  let i_to_s1 = string_of_int in
+  let i_to_s2 = fun n -> string_of_int (n-1) in
+  "fun",
+  (check_equal2 "Basic.equal" equal (yuck, yuck, true)) ::
+  List.map (check_equal2 "Basic.equal" (equal : (int -> string) -> (int -> string) -> bool))
+    [ i_to_s1, i_to_s1, true
+    ; i_to_s1, i_to_s2, false
+    ] @
+  List.map (check_equal2 "Basic.equal" (equal : (int -> int) -> (int -> int) -> bool))
+    [ i_to_i1, i_to_i1, true
+    ; i_to_i1, i_to_i2, false
+    ; i_to_i1, id,       false
+    ] @
+  List.map (check_equal2 "Basic.shash" shash)
+    [ 42, i_to_s1, h (h 42 i_to_s1) "Types.FunP.shash"
+    ;  0, i_to_s1, h (h  0 i_to_s1) "Types.FunP.shash"
+    ;  0, i_to_s2, h (h  0 i_to_s2) "Types.FunP.shash"
+    ] @
+  List.map (check_equal2 "Basic.shash" shash)
+    [ 42, i_to_i1, h (h 42 i_to_i1) "Types.FunP.shash"
+    ;  0, i_to_i1, h (h  0 i_to_i1) "Types.FunP.shash"
+    ;  0, i_to_i2, h (h  0 i_to_i2) "Types.FunP.shash"
+    ;  0, id, h (h  0 id) "Types.FunP.shash"
+    ] @
+  List.map (check_equal "Basic.show" show)
+    [ i_to_i1, "(fun:?)"
+    ; i_to_i2, "(fun:?)"
+    ; id, "(fun:?)"
+    ] @
+  List.map (check_equal "Basic.show" show)
+    [ i_to_s1, "(fun:?)"
+    ; i_to_s2, "(fun:?)"
+    ]
+
 let lazy_suite =
   "lazy",
-  List.map (check_equal2 "Basic.equal" (equal : int list Lazy.t -> int list Lazy.t -> bool))
+  List.map (check_equal2 "Basic.equal" equal)
     [ lazy [], lazy [], true
     ; lazy [4+5], lazy [5+5], false
     ; lazy [4+5], lazy [4+5;0], false
@@ -275,7 +314,7 @@ let lazy_suite =
     ; lazy [4+5+6], lazy [15], 0
     ] @
   List.map (check_equal2 "Basic.shash" shash)
-    [ 42, lazy 4, (shash (h 42 "Types.Lazy.shash") 4)
+    [ 42, lazy 4, (shash (h 42 "Types.LazyP.shash") 4)
     ] @
   List.map (check_equal "Basic.show" show)
     [ lazy "foo", "foo"
@@ -305,10 +344,10 @@ let list_suite =
     ; [[[["foo"]]];[[]];[]], [[[["foo"]]]; [] ;[]], 1
     ] @
   List.map (check_equal2 "Basic.shash" shash)
-    [ 42, [], h 42 "Types.List.shash"
+    [ 42, [], h 42 "Types.ListP.shash"
     ; 0, [1;2;3;4],
       List.fold_left h
-        (h 0 "Types.List.shash")
+        (h 0 "Types.ListP.shash")
         [1;2;3;4]
     ] @
   List.map (check_equal "Basic.show" show)
@@ -357,8 +396,8 @@ let option_suite =
     ; Some (Some false), Some (Some true), ~-1
     ] @
   List.map (check_equal2 "Basic.shash" shash)
-    [ 42, Some [4], h (h (h 42 "Types.Option.shash~Some") "Types.List.shash") 4
-    ; 0, None, h 0 "Types.Option.shash~None"
+    [ 42, Some [4], h (h (h 42 "Types.OptionP.shash~Some") "Types.ListP.shash") 4
+    ; 0, None, h 0 "Types.OptionP.shash~None"
     ] @
   List.map (check_equal "Basic.show" show)
     [ Some [], "(Some [])"
@@ -381,7 +420,7 @@ let option_suite =
     ; Some [[[["foo"]]];[];[]], Some [[[["foo"]]];[];[]]
     ; None, None
     ]
-
+(*
 let ref_suite =
   "ref",
   List.map (check_equal2 "Basic.equal" equal)
@@ -393,7 +432,7 @@ let ref_suite =
     ; ref None, ref None, true
     ; ref (Some true), ref (Some false), false
     ] @
-  List.map (check_equal2 "Basic.compare" compare)
+  List.map (check_equal2 "Basic.compare" (compare : int list ref -> int list ref -> int))
     [ ref [], ref [], 0
     ; ref [], ref [0], ~-1
     ; ref [1;2;3;4], ref [1;2;3;4], 0
@@ -406,8 +445,8 @@ let ref_suite =
     ; ref (Some false), ref (Some true), ~-1
     ] @
   List.map (check_equal2 "Basic.shash" shash)
-    [ 42, ref [4], h (h (h 42 "Types.Ref") "Types.List.shash") 4
-    ; 0, ref [], h (h 0 "Types.Ref") "Types.List.shash"
+    [ 42, ref [4], h (h (h 42 "Types.RefP") "Types.ListP.shash") 4
+    ; 0, ref [], h (h 0 "Types.RefP") "Types.ListP.shash"
     ] @
   List.map (check_equal "Basic.show" show)
     [ ref [], "(ref [])"
@@ -425,7 +464,7 @@ let ref_suite =
                                        string list list list list ref))
     [ ref [[[[]]];[[[]]]], ref [[[[]]];[[[]]]]
     ; ref [[[["foo"]]];[[]];[]], ref [[[["foo"]]];[[]];[]]
-    ]
+    ] *)
 
 let tuple2_suite =
   "tuple2",
@@ -597,8 +636,8 @@ let hashtbl_suite =
      List.map (check_equal2 "Basic.compare" compare)
        [ h0, h0, 0 ; h0, h1, 0 ; h1, h0, 0 ; h1, h1, 0 ] @
      List.map (check_equal2 "Basic.shash" shash)
-       [ 42, h0, h 42 "Types.Hashtbl.shash"
-       ;  0, h1, h  0 "Types.Hashtbl.shash"
+       [ 42, h0, h 42 "Types.HashtblP2.shash"
+       ;  0, h1, h  0 "Types.HashtblP2.shash"
        ] @
      List.map (check_equal "Basic.show" show)
        [ h0, "{}" ; h1, "{}" ] @
@@ -616,8 +655,8 @@ let hashtbl_suite =
      List.map (check_equal2 "Basic.compare" compare)
        [ h0, h0, 0 ; h0, h1, 0 ; h1, h0, 0 ; h1, h1, 0 ] @
      List.map (check_equal2 "Basic.shash" shash)
-       [ 42, h0, h (h (h (h (h 42 "Types.Hashtbl.shash") "bar") 0) "foo") 5
-       ;  0, h1, h (h (h (h (h  0 "Types.Hashtbl.shash") "bar") 0) "foo") 5
+       [ 42, h0, h (h (h (h (h 42 "Types.HashtblP2.shash") "bar") 0) "foo") 5
+       ;  0, h1, h (h (h (h (h  0 "Types.HashtblP2.shash") "bar") 0) "foo") 5
        ] @
      List.map (check_equal "Basic.show" show)
        [ h0, "{5 --> foo, 0 --> bar}"
@@ -633,8 +672,8 @@ let hashtbl_suite =
      List.map (check_equal2 "Basic.compare" compare)
        [ h0, h0, 0 ; h0, h1, ~-1 ; h1, h0, 1 ; h1, h1, 0 ] @
      List.map (check_equal2 "Basic.shash" shash)
-       [ 42, h0, h (h (h (h (h 42 "Types.Hashtbl.shash") "foo") 5) "bar") 0
-       ;  0, h1, h (h (h (h (h  0 "Types.Hashtbl.shash") "baz") 0) "foo") 5
+       [ 42, h0, h (h (h (h (h 42 "Types.HashtblP2.shash") "foo") 5) "bar") 0
+       ;  0, h1, h (h (h (h (h  0 "Types.HashtblP2.shash") "baz") 0) "foo") 5
        ] @
      List.map (check_equal "Basic.show" show)
        [ h0, "{0 --> bar, 5 --> foo}"
@@ -644,3 +683,10 @@ let hashtbl_suite =
        [ h0, h0 ; h1, h1 ]
    in
    t0@t1@t2)
+
+  
+open Types
+let _ =
+  print 5 ;
+  print ("foo", 'a', [1;2;3;4;5])
+
