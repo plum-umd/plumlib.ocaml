@@ -502,7 +502,7 @@ end
 
 (* .01 < frac_free < 1  *)
 let gc_halt (type a) : ?rel:float -> ?free:float -> ?minor:Mem.t ->
-  (unit -> a) -> a = fun ?rel ?free ?minor f ->
+  (unit -> a) -> a * Stat.t = fun ?rel ?free ?minor f ->
   let default_conf = Gc.get () in
   let default = Mem.words default_conf.minor_heap_size in
   let minor_heap_size =
@@ -523,10 +523,12 @@ let gc_halt (type a) : ?rel:float -> ?free:float -> ?minor:Mem.t ->
          ~allocation_policy:1
          () ;
   Gc.full_major () ;
-  let out = f () in
+  let before = Gc.quick_stat () in
+  let out    = f () in
+  let after  = Gc.quick_stat () in
   Gc.set default_conf ;
   Gc.full_major () ;
-  out
+  out, (Stat.diff after before)
 
 let mk_memweigh () =  
   (* empty overhead initially *)
@@ -556,7 +558,8 @@ let mk_memabort () =
     (if print then print_endline (Stat.show_diff diff)) ;
     diff
   in
-  overhead := gc_halt (memabort Gc.quick_stat) ;
+  let out, _ = gc_halt (memabort Gc.quick_stat) in
+  overhead := out ;
   (* return (memabort : ?print:bool -> (unit -> Stat.t) -> Stat.t) *)
   memabort
 
@@ -567,8 +570,8 @@ let nativep =
     | None, None ->
       let abortf = mk_memabort () in abort := Some abortf ;
       let litopt =
-        0 = (gc_halt (abortf (fun () ->
-             let intlit = 1 in Gc.quick_stat ()))).stack_size
+        0 = (fst (gc_halt (abortf (fun () ->
+            let intlit = 1 in Gc.quick_stat ())))).stack_size
       in
       abort := None ;
       cache := Some litopt ;
